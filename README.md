@@ -1,4 +1,9 @@
 Implementacja części biblioteki obsługi wątków z semaforami.
 
-Zadanie będzie polegać na utworzeniu i zaimplementowaniu interfejsu biblioteki wątków. Interfejs będzie zawierał funkcje, dzięki którym można będzie m.in. tworzyć, wstrzymywać, usypiać wątki. Obsługa wątków będzie umożliwiała korzystanie z semaforów. Projekt będę starał się robić zgodnie z poleceniami z http://pages.cs.wisc.edu/~remzi/Classes/537/Fall2005/Projects/P3/p3.html . Nie wykluczam jednak modyfikacji. Będą one uwzględnione w pełnej specyfikacji w przyszłym tygodniu.
+Zadanie będzie polegać na utworzeniu i zaimplementowaniu części biblioteki wątków. Będzie zawierała ona m.in.:
+-thread_create() - tworzenie wątku
+-thread_wait() - wstrzymywanie wątku
+-thread_join() - czekanie, za wątkiem (za jego zakończeniem)
+-thread_signal() - uruchamianie wstrzymanego wątku
 
+Obsługa wątków będzie umożliwiała korzystanie z semaforów, które zaimplementowane będą po upewnieniu się, że pozostałe funkcje działają poprawnie. Projekt będę starał się robić korzystając z biblioteki ucontext. 
