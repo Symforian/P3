@@ -1,8 +1,8 @@
 myThread: 
-	g++ -Wall -Werror -o MyThread.o MyThread.cpp
+	g++ -Wall -Werror -o myThread.o myThread.cpp
 
 
 run:
-	./MyThread.o
+	./myThread.o
 clean:
-rm *.o
+	rm *.o

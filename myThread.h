@@ -1,21 +1,25 @@
+#include<stdio.h>
+#include<stdlib.h>
 #include<ucontext.h>
 
 //myThread struct
 typedef struct{
 	ucontext_t context;
+	bool isActive;
 	void* stack;
 } myThread;
+#define MTHREADS_NUM 10
 
-//rdy queue
 
+extern void Init_myThreads();
 // switching context between myThreads
-void schedule();
+extern void schedule();
 
 //Creating new myThread
-int Create_myThread(/*Arg*/);
+extern int Create_myThread(void (*function)(void) );
 
 //Waiting for myThread to finish
-int Join_myThread();
+extern int Join_myThread();
 
 enum Signals
 {
