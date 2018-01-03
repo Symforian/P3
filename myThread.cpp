@@ -4,6 +4,9 @@
 
 void schedule()
 {
-	//check time
-	//switch context
+	//check time ?? struct do czasu
+	//switch context 
+		/* getcontext
+		 * swapcontext
+		 */
 }
