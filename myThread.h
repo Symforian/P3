@@ -2,7 +2,7 @@
 
 //myThread struct
 typedef struct{
-	ucontext context;
+	ucontext_t context;
 } myThread;
 
 // switching context between myThreads
@@ -22,4 +22,5 @@ int Wait_myThread();
 int Signal_myThread();
 //Join on all remaining myThreads
 int WaitForAll_myThreads();
+// Enum for signals returned by functions??
 */
