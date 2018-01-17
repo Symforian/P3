@@ -3,10 +3,6 @@
 #include "myThread.h"
 
 
-int main(void)
-{
-
-}
 void Init_myThreads()
 {
 	getcontext(&mainThread);
@@ -25,13 +21,18 @@ void schedule()
 		bool swapped = false;
 		if(cur_myThread_ptr == MAIN_THREAD) //We were currently doing main
 		{
+			
 			for(int i = 0; i < MTHREADS_NUM ; i ++)
-			{	if(All_myThreads[i].isActive == true && All_myThreads[i].waitingFor == NOT_FOUND)
+			{	
+		//printf("Thread %d is active? %d\n",i,All_myThreads[i].isActive);
+				if(All_myThreads[i].isActive == true && All_myThreads[i].waitingFor == NOT_FOUND)
 					{
+						
 						swapped = true;
 						set_myThread_ptr(i);
 						swapcontext(&currentThread,&All_myThreads[i].context);
 					}
+				
 			}
 		}
 		else
@@ -96,8 +97,9 @@ int Create_myThread(void (*function)(void) )
 	All_myThreads[place].context.uc_stack.ss_size= MY_THREAD_STACK_SIZE;
 	if(All_myThreads[place].context.uc_stack.ss_sp==0)
 		return DONE_WRONG;
-
+	//printf("Thread is active? %d\n",All_myThreads[place].isActive);
 	makecontext(&All_myThreads[place].context,(void (*) (void))&runOn_myThread,1,&function);
+	All_myThreads[place].isActive = true;
 	return DONE_GOOD;
 }
 int Join_myThread(myThread T)
@@ -165,4 +167,27 @@ void isSomeoneWaitingFor(int Me)
 	{
 		mainWaitingFor= NOT_FOUND;
 	}
+}
+//example 
+void myThread_function()
+{
+	for(int i = 0; i < 40; i ++)
+		{
+		printf("Hello, myThread there!\n");
+		schedule();
+		}
+}
+int main(void)
+{
+	printf("Main thread\n");
+	Init_myThreads();
+	printf("New my thread is born:\n");
+	Create_myThread(&myThread_function);
+	for(int i = 0; i < 40; i ++)
+	{
+	printf("Main thread\n");
+	schedule();
+	}
+	WaitForAll_myThreads();
+	return 0;
 }
