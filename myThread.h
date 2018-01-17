@@ -1,15 +1,19 @@
 #include<stdio.h>
 #include<stdlib.h>
 #include<ucontext.h>
-
+#define MY_THREAD_STACK_SIZE 1024 * 32 
+//rdy queue
+static myThread All_myThreads [MTHREADS_NUM];
 //myThread struct
 typedef struct{
 	ucontext_t context;
 	bool isActive;
 	void* stack;
 } myThread;
+//max thread number
 #define MTHREADS_NUM 10
-
+//Pointer to current thread running
+static int cur_myThread_ptr;
 
 extern void Init_myThreads();
 // switching context between myThreads
