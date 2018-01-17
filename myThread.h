@@ -4,7 +4,8 @@
 
 ////STRUCTS
   //myThread struct
-typedef struct{			
+typedef struct{
+	int id;			
 	ucontext_t context;
 	bool isActive;
 	void* stack;
@@ -12,7 +13,7 @@ typedef struct{
 } myThread;
 ////FIELDS
   //max thread stack size
-#define MY_THREAD_STACK_SIZE 1024 * 32 
+#define MY_THREAD_STACK_SIZE 1024 * 64 
   //max thread number
 #define MTHREADS_NUM 10
   //Signals
@@ -56,6 +57,9 @@ static void set_myThread_ptr(int value);
 
   //Makes those who waited running again
 void isSomeoneWaitingFor(int Me);
+
+  //Finds index in table of all threads of given thread 
+//int findIndexOfThread(myThread T);
 /*
 enum Signals
 {

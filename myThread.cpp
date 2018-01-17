@@ -13,6 +13,7 @@ void Init_myThreads()
 	getcontext(&currentThread);
 	for(int i = 0; i < MTHREADS_NUM ; i ++)
 		{
+			All_myThreads[i].id = i;
 			All_myThreads[i].isActive = false;
 			All_myThreads[i].waitingFor = NOT_FOUND;
 		}
@@ -99,11 +100,16 @@ int Create_myThread(void (*function)(void) )
 	makecontext(&All_myThreads[place].context,(void (*) (void))&runOn_myThread,1,&function);
 	return DONE_GOOD;
 }
-int Join_myThread(myThread T)//tbd
+int Join_myThread(myThread T)
 {
+	//int indexT = findIndexOfThread(T);
+	if(T.id >= 0 && T.id <= MTHREADS_NUM-1)
+		{
+			All_myThreads[cur_myThread_ptr].waitingFor = T.id;
+			return DONE_GOOD;
+		}
 	
-	
-	return DONE_GOOD;
+	return DONE_WRONG;
 }
 void runOn_myThread(void (*function) (void))
 {
@@ -112,7 +118,7 @@ void runOn_myThread(void (*function) (void))
 	All_myThreads[cur_myThread_ptr].isActive = false;
 	free(All_myThreads[cur_myThread_ptr].stack);
 }
- int WaitForAll_myThreads() //check if all have finished, need fixing
+ int WaitForAll_myThreads() //check if all have finished
 {
 	mainWaitingFor = MTHREADS_NUM; // waiting for all
 	if(findFirstFree() == NOT_FOUND)      // no active threads
@@ -132,7 +138,15 @@ int findFirstFree()
 	}
 	return NOT_FOUND;
 }
-
+/*int findIndexOfThread(myThread T)
+{
+	for(int i = 0; i < MTHREADS_NUM ; i ++)
+	{
+		if(All_myThreads[i].ID == T.ID)
+			return i;
+	}
+	return NOT_FOUND;
+}*/
 static void set_myThread_ptr(int value)
 {
 	if(value >= 0 && value <= MTHREADS_NUM-1)
