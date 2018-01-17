@@ -2,7 +2,7 @@
 #include<stdlib.h>
 #include<ucontext.h>
 #define MY_THREAD_STACK_SIZE 1024 * 32 
-//rdy queue
+//all threads list
 static myThread All_myThreads [MTHREADS_NUM];
 //myThread struct
 typedef struct{
@@ -23,7 +23,13 @@ extern void schedule();
 extern int Create_myThread(void (*function)(void) );
 
 //Waiting for myThread to finish
-extern int Join_myThread();
+extern int Join_myThread(myThread T);
+
+//Join on all remaining myThreads
+extern int WaitForAll_myThreads();
+
+//finding place for new thread in thread queue
+extern int findFirstFree();
 
 enum Signals
 {
@@ -35,7 +41,6 @@ enum Signals
 int Wait_myThread();
 // "Popping" myThread of semaphore
 int Signal_myThread();
-//Join on all remaining myThreads
-int WaitForAll_myThreads();
+
 
 */
