@@ -9,18 +9,23 @@ int main(void)
 }
 void Init_myThreads()
 {
-	for(int i = 0; i < MTHREADS_NUM-1 ; i ++)
-		All_myThreads[i].isActive = false;
+	getcontext(&mainThread);
+	getcontext(&currentThread);
+	for(int i = 0; i < MTHREADS_NUM ; i ++)
+		{
+			All_myThreads[i].isActive = false;
+			All_myThreads[i].waitingFor = NOT_FOUND;
+		}
 }
 void schedule()
 {
 	if(true)//CHANGE THIS when some kind of timer will be done.
 	{
 		bool swapped = false;
-		if(cur_myThread_ptr == -1) //We were currently doing main
+		if(cur_myThread_ptr == MAIN_THREAD) //We were currently doing main
 		{
-			for(int i = 0; i < MTHREADS_NUM-1 ; i ++)
-			{	if(All_myThreads[i].isActive == true)
+			for(int i = 0; i < MTHREADS_NUM ; i ++)
+			{	if(All_myThreads[i].isActive == true && All_myThreads[i].waitingFor == NOT_FOUND)
 					{
 						swapped = true;
 						set_myThread_ptr(i);
@@ -32,10 +37,11 @@ void schedule()
 		{
 			if(!swapped)//checking myThreads current+1 to last one if ready 
 			{
-				for(int i = cur_myThread_ptr+1; i < MTHREADS_NUM-1 ; i ++)
-				{	if(All_myThreads[i].isActive == true)
+				for(int i = cur_myThread_ptr+1; i < MTHREADS_NUM ; i ++)
+				{	if(All_myThreads[i].isActive == true && All_myThreads[i].waitingFor == NOT_FOUND)
 						{
 							swapped = true;
+							isSomeoneWaitingFor(cur_myThread_ptr);
 							set_myThread_ptr(i);
 							swapcontext(&currentThread,&All_myThreads[i].context);
 						}
@@ -43,17 +49,31 @@ void schedule()
 			}
 			if(!swapped)//swapping with main
 			{
-				swapped = true;
-				set_myThread_ptr(-1);
-				swapcontext(&currentThread,&mainThread);
+				if(mainWaitingFor == MTHREADS_NUM) 
+				{
+					if(WaitForAll_myThreads()==DONE_GOOD) //done waiting
+					{
+						swapped = true;
+						set_myThread_ptr(MAIN_THREAD);
+						swapcontext(&currentThread,&mainThread);
+					}
+				}
+				else
+					if(mainWaitingFor == NOT_FOUND)
+				{
+					swapped = true;
+					set_myThread_ptr(MAIN_THREAD);
+					swapcontext(&currentThread,&mainThread);
+				}
 					
 			}
-			if(!swapped)//checking myThreads first (0) to current-1
+			if(!swapped)//checking myThreads first (0) to current
 			{
-				for(int i = 0; i < cur_myThread_ptr-1 ; i ++)
-				{	if(All_myThreads[i].isActive == true)
+				for(int i = 0; i < cur_myThread_ptr ; i ++)
+				{	if(All_myThreads[i].isActive == true && All_myThreads[i].waitingFor == NOT_FOUND)
 						{
 							swapped = true;
+							isSomeoneWaitingFor(cur_myThread_ptr);
 							set_myThread_ptr(i);
 							swapcontext(&currentThread,&All_myThreads[i].context);
 						}
@@ -66,23 +86,24 @@ void schedule()
 int Create_myThread(void (*function)(void) )
 {
 	int place = findFirstFree();
-	if(place == -1)
-		return 1;
+	if(place == NOT_FOUND)
+		return DONE_WRONG;
+	getcontext(&All_myThreads[place].context);
 	All_myThreads[place].stack = malloc(MY_THREAD_STACK_SIZE);
 	All_myThreads[place].context.uc_link = 0;
 	All_myThreads[place].context.uc_stack.ss_sp = All_myThreads[place].stack;
 	All_myThreads[place].context.uc_stack.ss_size= MY_THREAD_STACK_SIZE;
 	if(All_myThreads[place].context.uc_stack.ss_sp==0)
-	return 1;
+		return DONE_WRONG;
 
 	makecontext(&All_myThreads[place].context,(void (*) (void))&runOn_myThread,1,&function);
-	return 0;
+	return DONE_GOOD;
 }
 int Join_myThread(myThread T)//tbd
 {
 	
 	
-	return 0;
+	return DONE_GOOD;
 }
 void runOn_myThread(void (*function) (void))
 {
@@ -93,24 +114,41 @@ void runOn_myThread(void (*function) (void))
 }
  int WaitForAll_myThreads() //check if all have finished, need fixing
 {
-	if(findFirstFree() == -1)
-		return 0;
+	mainWaitingFor = MTHREADS_NUM; // waiting for all
+	if(findFirstFree() == NOT_FOUND)      // no active threads
+		{
+			mainWaitingFor = NOT_FOUND;
+			return DONE_GOOD;
+		}
 	else
-		return -1;
+		return DONE_WRONG;
 }
 int findFirstFree()
 {
-	for(int i = 0; i < MTHREADS_NUM-1 ; i ++)
+	for(int i = 0; i < MTHREADS_NUM ; i ++)
 	{
 		if(All_myThreads[i].isActive == false)
 			return i;
 	}
-	return -1;
+	return NOT_FOUND;
 }
+
 static void set_myThread_ptr(int value)
 {
 	if(value >= 0 && value <= MTHREADS_NUM-1)
 		cur_myThread_ptr = value;
 	else
-		cur_myThread_ptr = -1;
+		cur_myThread_ptr = MAIN_THREAD;
+}
+void isSomeoneWaitingFor(int Me)
+{
+	for(int i = 0; i < MTHREADS_NUM ; i ++)
+	{
+		if(All_myThreads[i].isActive == true && All_myThreads[i].waitingFor == Me)
+			All_myThreads[i].waitingFor = NOT_FOUND;
+	}
+	if(mainWaitingFor == Me)
+	{
+		mainWaitingFor= NOT_FOUND;
+	}
 }
