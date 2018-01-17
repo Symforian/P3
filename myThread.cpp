@@ -12,11 +12,24 @@ void Init_myThreads()
 }
 void schedule()
 {
-	//check time ?? struct do czasu
-	//switch context 
-		/* getcontext
-		 * swapcontext
-		 */
+	//swap with main thread???
+	if(/*"Time passed"*/)
+	{
+		bool swapped = false;
+		for(int i = cur_myThread_ptr; i < MTHREADS_NUM-1 ; i ++)
+			if(All_myThreads[i].isActive == true)
+				{
+					swapped = true;
+					swapcontext();
+				}
+		if(!swapped)
+		for(int i = 0; i < cur_myThread_ptr-1 ; i ++)
+			if(All_myThreads[i].isActive == true)
+				{
+					swapped = true;
+					swapcontext();
+				}
+	}
 }
 
 int Create_myThread(void (*function)(void) )
@@ -25,15 +38,15 @@ int Create_myThread(void (*function)(void) )
 	if(place == -1)
 	return 1;
 	//ucontext_t new_myThread;
-	void* newStack;
-	newStack = malloc(MY_THREAD_STACK_SIZE);
+	//void* newStack;
+	All_myThreads[place].stack = malloc(MY_THREAD_STACK_SIZE);
 	All_myThreads[place].uc_link = 0;
-	All_myThreads[place].ss_sp = newStack;
+	All_myThreads[place].ss_sp = All_myThreads[place].stack;
 	All_myThreads[place].ss_size= MY_THREAD_STACK_SIZE;
 	if(All_myThreads[place].ss_sp==0)
 	return 1;
-	else 
-	makecontext(&new_myThread,&function);
+
+	makecontext(&new_myThread,&function,0);
 	return 0;
 }
 int Join_myThread(myThread T)
@@ -42,7 +55,7 @@ int Join_myThread(myThread T)
 	
 	return 0;
 }
- int WaitForAll_myThreads()
+ int WaitForAll_myThreads() //check if all have finished 
 {
 	if(findFirstFree() == -1)
 		return 0;
@@ -57,4 +70,11 @@ int findFirstFree()
 			return i;
 	}
 	return -1;
+}
+static void set_myThread_ptr(int value)
+{
+	if(value >= 0 && value <= MTHREADS_NUM-1)
+		cur_myThread_ptr = value;
+	else
+		cur_myThread_ptr = -1;
 }

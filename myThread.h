@@ -13,7 +13,7 @@ typedef struct{
 //max thread number
 #define MTHREADS_NUM 10
 //Pointer to current thread running
-static int cur_myThread_ptr;
+static int cur_myThread_ptr = -1;
 
 extern void Init_myThreads();
 // switching context between myThreads
@@ -30,6 +30,10 @@ extern int WaitForAll_myThreads();
 
 //finding place for new thread in thread queue
 extern int findFirstFree();
+
+//setter for pointer 
+static void set_myThread_ptr(int value);
+
 
 enum Signals
 {
