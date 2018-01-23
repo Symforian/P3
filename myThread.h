@@ -29,8 +29,8 @@ static myThread All_myThreads [MTHREADS_NUM];
   //Pointer to current thread running
 static int cur_myThread_ptr = -1;
 int mainWaitingFor = -1;
-ucontext_t currentThread;
-static ucontext_t mainThread;
+ ucontext_t currentThread;
+ ucontext_t mainThread;
 
 ////FUNCTIONS
 void Init_myThreads();
