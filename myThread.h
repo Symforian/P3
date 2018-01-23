@@ -43,13 +43,13 @@ void runOn_myThread(void (*function) (void));
 int WaitForAll_myThreads();
 
   //finding place for new thread in thread queue
-int findFirstFree();
+//int findFirstFree();
 
   //setter for pointer 
-static void set_myThread_ptr(int value);
+// void set_myThread_ptr(int value);
 
   //Makes those who waited running again
-void isSomeoneWaitingFor(int Me);
+//void isSomeoneWaitingFor(int Me);
 
   //Finds index in table of all threads of given thread 
 //int findIndexOfThread(myThread T);

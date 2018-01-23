@@ -3,7 +3,7 @@ myThread:
 
 example: myThread.o
 	g++ -Wall -Werror -o example.o example.cpp
-run:
+run: myThread.o
 	./myThread.o
 clean:
 	rm *.o
