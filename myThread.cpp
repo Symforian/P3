@@ -1,19 +1,31 @@
 #include<iostream>
 #include<cstdlib>
 #include "myThread.h"
+  //all threads list
+ myThread All_myThreads [MTHREADS_NUM];
 
+  //Pointer to current thread running
+int cur_myThread_ptr = -1;
+int mainWaitingFor = -1;
+ ucontext_t currentThread;
+ myThread mainThread;
 
 void Init_myThreads()
 {
 	//getcontext(&mainThread);
-	mainThread.uc_link = 0;
-	mainThread.uc_stack.ss_sp = malloc(MY_THREAD_STACK_SIZE);
-	mainThread.uc_stack.ss_size= MY_THREAD_STACK_SIZE;
+	myThread newThread;
+	getcontext(&newThread.context);
+	newThread.stack = malloc(MY_THREAD_STACK_SIZE);
+	newThread.context.uc_link = 0;
+	newThread.context.uc_stack.ss_sp = newThread.stack;
+	newThread.context.uc_stack.ss_size= MY_THREAD_STACK_SIZE;
+	mainThread = newThread;
+	currentThread = newThread.context;
 	//getcontext(&mainThread);
 	//getcontext(&currentThread);
-	currentThread.uc_link = 0;
-	currentThread.uc_stack.ss_sp = malloc(MY_THREAD_STACK_SIZE);
-	currentThread.uc_stack.ss_size= MY_THREAD_STACK_SIZE;
+	//currentThread.uc_link = 0;
+	//currentThread.uc_stack.ss_sp = malloc(MY_THREAD_STACK_SIZE);
+	//currentThread.uc_stack.ss_size= MY_THREAD_STACK_SIZE;
 	//getcontext(&currentThread);
 	for(int i = 0; i < MTHREADS_NUM ; i ++)
 		{
@@ -21,7 +33,7 @@ void Init_myThreads()
 			All_myThreads[i].isActive = false;
 			All_myThreads[i].waitingFor = NOT_FOUND;
 		}
-	swapcontext(&mainThread,&currentThread);
+	//swapcontext(&mainThread.context,&currentThread);
 }
 void schedule()
 {
@@ -30,22 +42,23 @@ void schedule()
 		bool swapped = false;
 		if(cur_myThread_ptr == MAIN_THREAD) //We were currently doing main
 		{
-			
+				
 			for(int i = 0; i < MTHREADS_NUM ; i ++)
 			{	
-
+	//printf("hello");
 		//printf("Thread %d is active? %d\n",i,All_myThreads[i].isActive);
+if(i==0)
 printf("Thread %d is active? %d\n",i,All_myThreads[i].isActive == true && All_myThreads[i].waitingFor == NOT_FOUND);
 						//printf("hello");
 				if(All_myThreads[i].isActive == true && All_myThreads[i].waitingFor == NOT_FOUND)
 					{
-						//printf("hello");
+				
 						
-						//set_myThread_ptr(i);
-						//swapped = true;
+						set_myThread_ptr(i);
+						swapped = true;
 						//mainThread = currentThread;
-						//currentThread = All_myThreads[i].context;
-						swapcontext(&mainThread,&All_myThreads[i].context);
+						currentThread = All_myThreads[i].context;
+						swapcontext(&mainThread.context,&All_myThreads[i].context);
 
 						
 					}
@@ -74,7 +87,7 @@ printf("Thread %d is active? %d\n",i,All_myThreads[i].isActive == true && All_my
 					{
 						swapped = true;
 						set_myThread_ptr(MAIN_THREAD);
-						swapcontext(&currentThread,&mainThread);
+						swapcontext(&currentThread,&mainThread.context);
 					}
 				}
 				else
@@ -82,7 +95,7 @@ printf("Thread %d is active? %d\n",i,All_myThreads[i].isActive == true && All_my
 				{
 					swapped = true;
 					set_myThread_ptr(MAIN_THREAD);
-					swapcontext(&currentThread,&mainThread);
+					swapcontext(&currentThread,&mainThread.context);
 				}
 					
 			}
@@ -104,21 +117,26 @@ printf("Thread %d is active? %d\n",i,All_myThreads[i].isActive == true && All_my
 
 int Create_myThread(void (*function)(void) )
 {
-	printf("1\n");
+	//printf("1\n");
 	int place = findFirstFree();
-	printf("1,%d",place);
+	//printf("1,%d",place);
 	if(place == NOT_FOUND)
 		return DONE_WRONG;
-	getcontext(&All_myThreads[place].context);
-	All_myThreads[place].stack = malloc(MY_THREAD_STACK_SIZE);
-	All_myThreads[place].context.uc_link = 0;
-	All_myThreads[place].context.uc_stack.ss_sp = All_myThreads[place].stack;
-	All_myThreads[place].context.uc_stack.ss_size= MY_THREAD_STACK_SIZE;
-	if(All_myThreads[place].context.uc_stack.ss_sp==0)
+	myThread newThread;
+	getcontext(&newThread.context);
+	newThread.stack = malloc(MY_THREAD_STACK_SIZE);
+	newThread.context.uc_link = 0;
+	newThread.context.uc_stack.ss_sp = newThread.stack;
+	newThread.context.uc_stack.ss_size= MY_THREAD_STACK_SIZE;
+	if(newThread.context.uc_stack.ss_sp==0)
 		return DONE_WRONG;
-	//printf("Thread is active? %d\n",All_myThreads[place].isActive);
-	makecontext(&All_myThreads[place].context,(void (*) (void))&runOn_myThread,1,&function);
-	All_myThreads[place].isActive = true;
+	printf("Thread is active? creat %d\n",All_myThreads[place].isActive);
+	makecontext(&newThread.context,(void (*) (void))&runOn_myThread,1,&function);
+	newThread.isActive = true;
+	newThread.waitingFor = -1;
+	All_myThreads[place]=newThread;
+
+	printf("Thread is active? creat %d\n",All_myThreads[place].isActive);
 	return DONE_GOOD;
 }
 int Join_myThread(myThread T)
