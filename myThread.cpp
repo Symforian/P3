@@ -21,8 +21,11 @@ void Init_myThreads()
 	newThread.context.uc_link = 0;
 	newThread.context.uc_stack.ss_sp = newThread.stack;
 	newThread.context.uc_stack.ss_size= MY_THREAD_STACK_SIZE;
+	newThread.id = MAIN_THREAD;
+	newThread.waitingFor = NOT_FOUND;
+	newThread.context.uc_stack.ss_flags = 0;
 	mainThread = newThread;
-	currentThread = newThread.context;
+	//currentThread = newThread.context;
 	//getcontext(&mainThread);
 	//getcontext(&currentThread);
 	//currentThread.uc_link = 0;
@@ -55,14 +58,15 @@ void schedule()
 						printf("hello");
 				if(All_myThreads[i].isActive == true && All_myThreads[i].waitingFor == NOT_FOUND)
 					{
-				//printf("%d 111111111111111111111111111111",i);
+				printf("%d w4 %d",All_myThreads[i].id,All_myThreads[i].waitingFor);
 						
 						//set_myThread_ptr(i);
-						swapped = true;
+						//swapped = true;
 						//mainThread = currentThread;
 						//currentThread = All_myThreads[i].context;
 
-						swapcontext(&mainThread.context,&All_myThreads[i].context);
+						if(swapcontext(&mainThread.context,&All_myThreads[i].context))
+							printf("error");
 
 						
 					}
@@ -129,16 +133,19 @@ int Create_myThread(void (*function)(void) )
 	myThread newThread;
 	//getcontext(&newThread.context);
 	newThread.stack = malloc(MY_THREAD_STACK_SIZE);
-	newThread.context.uc_link = NULL;
+	newThread.context.uc_link = 0;
 	newThread.context.uc_stack.ss_sp = newThread.stack;
 	newThread.context.uc_stack.ss_size= MY_THREAD_STACK_SIZE;
+	newThread.context.uc_stack.ss_flags = 0;
 	if(newThread.context.uc_stack.ss_sp==0)
 		return DONE_WRONG;
 	printf("Thread is active? creat %d\n",All_myThreads[place].isActive);
-	makecontext(&newThread.context,(void (*) (void))&runOn_myThread,1,&function);
 	newThread.isActive = true;
 	newThread.waitingFor = -1;
+	newThread.id = place;
 	All_myThreads[place]=newThread;
+	makecontext(&All_myThreads[place].context,(void (*) (void))&runOn_myThread,1,&function);
+
 
 	printf("Thread is activeef? creat %d\n",All_myThreads[place].isActive);
 	return DONE_GOOD;
