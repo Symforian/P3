@@ -37,7 +37,7 @@ int Create_myThread(void (*function)(void) );
 int Join_myThread(myThread T);
 
   //Running function on thread
-void runOn_myThread(void (*function) (void));
+//void runOn_myThread(void (*function) (void));
 
   //Join on all remaining myThreads
 int WaitForAll_myThreads();
