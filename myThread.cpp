@@ -190,13 +190,15 @@ if(TEXT)
 printf("\nJOIN who:%d to who:%d\n",cur_myThread_ptr,idToJoin);
 	if(idToJoin >= 1)
 		{
-			
+			printf("huh1");
 			if(canI_JoinHim(cur_myThread_ptr,idToJoin)==DONE_GOOD)
-			{	 
+			{	 printf("huh2");
 				int place = placeFromId(idToJoin);
-				if(place!=DONE_WRONG)
+				if(place!=NOT_FOUND)
 				{
 				All_myThreads[cur_myThread_ptr].waitingFor=place;
+printf("huh3");
+				schedule();
 				return DONE_GOOD;
 				}
 			}
@@ -218,10 +220,12 @@ int placeFromId(int id)
 {
 	for(int i = 0; i < MTHREADS_NUM ; i ++)
 	{
+	printf("\nid:%d place:%d\n",All_myThreads[i].id,All_myThreads[i].place);
 		if(All_myThreads[i].id==id)
 			return All_myThreads[i].place;	
+
 	}
-	return DONE_WRONG;
+	return NOT_FOUND;
 }
 void CleanThread()
 {
@@ -335,6 +339,7 @@ void myThread_function4()
 	printf("WATEK POTOMNY 4 BEDZIE CZEKAL ZA WATKIEM 2");
 	schedule();
 	Join_myThread(2);
+
 	printf("WATEK POTOMNY 4 SKONCZYŁ CZEKAĆ ZA WĄTKIEM 2");
 	schedule();
 
