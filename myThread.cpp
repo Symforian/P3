@@ -3,9 +3,7 @@
 #include "myThread.h"
   //all threads list
   myThread All_myThreads [MTHREADS_NUM];
-
-  //Pointer to current thread running
-int TEXT = 1;
+int TEXT =0;
 int cur_myThread_ptr = -1;
  ucontext_t cleanerThread;
  myThread mainThread;
@@ -61,24 +59,19 @@ printf("\nSCHEDULE as %d,first empty place is %d\n",cur_myThread_ptr,findFirstFr
 		if(cur_myThread_ptr == MAIN_THREAD) //We were currently doing main
 		{
 if(TEXT)	
-printf("-MAIN\n");
-				
+printf("-MAIN\n");	
 			for(int i = 0; i < MTHREADS_NUM ; i ++)
 			{	
 
 
 				if(All_myThreads[i].isActive == true && All_myThreads[i].waitingFor == NOT_FOUND)
 					{
-						if(TEXT)
-						printf("---PRZEŁĄCZANIE NA %d \n\n",i);
+if(TEXT) printf("---PRZEŁĄCZANIE NA %d \n\n",i);
 						cur_myThread_ptr=i;
 						swapped = true;
 
-						if(swapcontext(&mainThread.context,&All_myThreads[i].context))
-							printf("error");
-						
+						swapcontext(&mainThread.context,&All_myThreads[i].context);				
 					}
-				
 			}
 		}
 		else
@@ -90,16 +83,16 @@ printf("-NOT MAIN\n");
 if(TEXT)	
 printf("--current to last\n");
 				for(int i = cur_myThread_ptr+1; i < MTHREADS_NUM ; i ++)
-				{	if(All_myThreads[i].isActive == true && All_myThreads[i].waitingFor == NOT_FOUND)
+					if(All_myThreads[i].isActive == true && All_myThreads[i].waitingFor == NOT_FOUND)
 						{
-						if(TEXT)
-						printf("---PRZEŁĄCZANIE NA %d \n\n",i);
+if(TEXT)
+printf("---PRZEŁĄCZANIE NA %d \n\n",i);
 							swapped = true;
 							int old = cur_myThread_ptr;
 							cur_myThread_ptr=i;
 							swapcontext(&All_myThreads[old].context,&All_myThreads[i].context);
 						}
-				}
+				
 			}
 			if(!swapped)//swapping with main
 			{
@@ -111,23 +104,20 @@ if(TEXT)
 printf("--main czeka na wszystkich\n");
 					if(running_myThreads()==0) //done waiting
 					{
-						if(TEXT)
-						printf("---PRZEŁĄCZANIE NA MAIN \n\n");
-						swapped = true;
+if(TEXT)
+printf("---PRZEŁĄCZANIE NA MAIN \n\n");
+					swapped = true;
 					int old = cur_myThread_ptr;
 					cur_myThread_ptr=MAIN_THREAD;
 					swapcontext(&All_myThreads[old].context,&mainThread.context);
 					}
-					else{
-						if(TEXT)
-						printf("---MAIN wziąż czeka \n\n");
-					}
+/*                                     */else if(TEXT)
+printf("---MAIN wziąż czeka \n\n");
+					
 				}
-				else
-					if(mainThread.waitingFor == NOT_FOUND)
+				else if(mainThread.waitingFor == NOT_FOUND)
 				{
-					if(TEXT)	
-					printf("---PRZEŁĄCZANIE NA MAIN \n\n");
+if(TEXT) printf("---PRZEŁĄCZANIE NA MAIN \n\n");
 					swapped = true;
 					int old = cur_myThread_ptr;
 					cur_myThread_ptr=MAIN_THREAD;
@@ -137,33 +127,30 @@ printf("--main czeka na wszystkich\n");
 			}
 			if(!swapped)//checking myThreads first (0) to current
 			{
-if(TEXT)	
-printf("--od 0 do obecnego\n");
+if(TEXT) printf("--od 0 do obecnego\n");
 				for(int i = 0; i < cur_myThread_ptr ; i ++)
-				{	if(All_myThreads[i].isActive == true && All_myThreads[i].waitingFor == NOT_FOUND)
+					if(All_myThreads[i].isActive == true && All_myThreads[i].waitingFor == NOT_FOUND)
 						{
-						if(TEXT)
-						printf("---PRZEŁĄCZANIE NA %d \n\n",i);
+if(TEXT) printf("---PRZEŁĄCZANIE NA %d \n\n",i);
 							swapped = true;
 							int old = cur_myThread_ptr;
 							cur_myThread_ptr=i;
 							swapcontext(&All_myThreads[old].context,&All_myThreads[i].context);
 						}
-				}
+				
 			}
 		}
-	if(TEXT && swapped == false)
-		printf("---Nie było z czym zamienic\n");
+if(TEXT && swapped == false)
+printf("---Nie było z czym zamienic\n");
 	}
 }
 
 int Create_myThread(void (*function)(void), int id)
 {
-	if(id<1)
-		return DONE_WRONG;
+	if(id<1) return DONE_WRONG;
 	int place = findFirstFree();
-	if(place == NOT_FOUND)
-		return DONE_WRONG;
+	if(place == NOT_FOUND) return DONE_WRONG;
+
 	myThread newThread;
 	getcontext(&newThread.context);
 	newThread.context.uc_link = &cleanerThread;
@@ -171,72 +158,56 @@ int Create_myThread(void (*function)(void), int id)
 	newThread.stack = newThread.context.uc_stack.ss_sp;
 	newThread.context.uc_stack.ss_size= MY_THREAD_STACK_SIZE;
 	newThread.context.uc_stack.ss_flags = 0;
-	if(newThread.context.uc_stack.ss_sp==0)
-		return DONE_WRONG;
+	if(newThread.context.uc_stack.ss_sp==0) return DONE_WRONG;
 
 	newThread.isActive = true;
 	newThread.waitingFor = -1;
 	newThread.id=id;
 	newThread.place = place;
+
 	All_myThreads[place]=newThread;
 	makecontext(&All_myThreads[place].context,function,0);
 
-
 	return DONE_GOOD;
 }
-int Join_myThread(int idToJoin)
+int Join_myThread(int idToJoin)// A join B => B !join A 
 {
 if(TEXT)
 printf("\nJOIN who:%d to who:%d\n",cur_myThread_ptr,idToJoin);
 	if(idToJoin >= 1)
 		{
-			printf("huh1");
-			if(canI_JoinHim(cur_myThread_ptr,idToJoin)==DONE_GOOD)
-			{	 printf("huh2");
-				int place = placeFromId(idToJoin);
-				if(place!=NOT_FOUND)
+			int place = placeFromId(idToJoin);
+			if(place!=NOT_FOUND)
+			{	
+				if(canI_JoinHim(cur_myThread_ptr,place)==DONE_GOOD)
 				{
 				All_myThreads[cur_myThread_ptr].waitingFor=place;
-printf("huh3");
 				schedule();
 				return DONE_GOOD;
 				}
 			}
-
 		}
-	
 	return DONE_WRONG;
 }
 int canI_JoinHim(int I, int Him)
 {
-	if(All_myThreads[Him].waitingFor == MAIN_THREAD)
-		{printf("JOINed");return DONE_GOOD;}
-	if(All_myThreads[Him].waitingFor == I)
-		{printf("nJOINed");return DONE_WRONG;}
-	int waitPath = All_myThreads[Him].waitingFor;
-	return canI_JoinHim(I,All_myThreads[waitPath].waitingFor) ;
+	if(All_myThreads[Him].waitingFor == MAIN_THREAD) return DONE_GOOD;
+	if(All_myThreads[Him].waitingFor == I) return DONE_WRONG;
+	return canI_JoinHim(I,All_myThreads[All_myThreads[Him].waitingFor].waitingFor) ;
 }
 int placeFromId(int id)
 {
 	for(int i = 0; i < MTHREADS_NUM ; i ++)
-	{
-	printf("\nid:%d place:%d\n",All_myThreads[i].id,All_myThreads[i].place);
-		if(All_myThreads[i].id==id)
-			return All_myThreads[i].place;	
-
-	}
+		if(All_myThreads[i].id==id) return All_myThreads[i].place;	
 	return NOT_FOUND;
 }
 void CleanThread()
 {
-if(TEXT)
-printf("\nCLEANER\n");
+if(TEXT) printf("\nCLEANER\n");
 	isSomeoneWaitingFor(All_myThreads[cur_myThread_ptr].place);
-if(TEXT)
-printf("%d \n",cur_myThread_ptr);
+if(TEXT) printf("%d \n",cur_myThread_ptr);
 	All_myThreads[cur_myThread_ptr].isActive = false;
 	free(All_myThreads[cur_myThread_ptr].stack);
-
 	schedule();
 }
 
@@ -244,9 +215,7 @@ printf("%d \n",cur_myThread_ptr);
 {
 	mainThread.waitingFor = MTHREADS_NUM; // waiting for all
 	while(running_myThreads() != 0)      // wait until there are no active threads
-		{
-			schedule();
-		}
+		schedule();
 	return DONE_GOOD;
 	
 }
@@ -254,33 +223,23 @@ int running_myThreads()
 {
 	int retVal = 0;
 	for(int i = 0; i < MTHREADS_NUM ; i ++)
-	{
-		if(All_myThreads[i].isActive == true)
-			retVal++;
-	}
+		if(All_myThreads[i].isActive == true) retVal++;
+	
 	return retVal;
 }
 int findFirstFree()
 {
 	for(int i = 0; i < MTHREADS_NUM ; i ++)
-	{
-		if(All_myThreads[i].isActive == false)
-			return i;
-	}
+		if(All_myThreads[i].isActive == false) return i;
 	return NOT_FOUND;
 }
 
 void isSomeoneWaitingFor(int Me)
 {
 	for(int i = 0; i < MTHREADS_NUM ; i ++)
-	{
 		if(All_myThreads[i].isActive == true && All_myThreads[i].waitingFor == Me)
 			All_myThreads[i].waitingFor = NOT_FOUND;
-	}
-	if(mainThread.waitingFor == Me)
-	{
-		mainThread.waitingFor= NOT_FOUND;
-	}
+	if(mainThread.waitingFor == Me) mainThread.waitingFor= NOT_FOUND;
 }
 //example 
 void myThread_function()
@@ -295,7 +254,7 @@ void myThread_function()
 		schedule();
 		}
 	
-	printf("WATEK POTOMNY 1 KONCZY PRACE");
+	printf("WATEK POTOMNY 1 KONCZY PRACE\n");
 	return;
 }
 void myThread_function2()
@@ -307,8 +266,8 @@ void myThread_function2()
 		printf("----------------%d WATEK 2 PRACUJE\n",j);
 		schedule();
 		}
-	
-	printf("WATEK POTOMNY 2 KONCZY PRACE");
+	Join_myThread(4);
+	printf("WATEK POTOMNY 2 KONCZY PRACE\n");
 	return;
 }
 void myThread_function3()
@@ -336,11 +295,11 @@ void myThread_function4()
 	schedule();
 	printf("WATEK POTOMNY 4 PRACUJE 3\n");
 	schedule();
-	printf("WATEK POTOMNY 4 BEDZIE CZEKAL ZA WATKIEM 2");
+	printf("WATEK POTOMNY 4 BEDZIE CZEKAL ZA WATKIEM 2\n");
 	schedule();
 	Join_myThread(2);
 
-	printf("WATEK POTOMNY 4 SKONCZYŁ CZEKAĆ ZA WĄTKIEM 2");
+	printf("WATEK POTOMNY 4 SKONCZYŁ CZEKAĆ ZA WĄTKIEM 2\n");
 	schedule();
 
 	
