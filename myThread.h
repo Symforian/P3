@@ -27,19 +27,19 @@ typedef struct{
 
 
 ////FUNCTIONS
-extern void Init_myThreads();
+void Init_myThreads();
   // switching context between myThreads
-extern void schedule();
+void schedule();
 
   //Creating new myThread
-extern int Create_myThread(void (*function)(void), int id);
+int Create_myThread(void (*function)(void), int id);
 
   //Waiting for myThread to finish
-extern int Join_myThread(int idToJoin);
+int Join_myThread(int idToJoin);
 
 
   //Join on all remaining myThreads
-extern int WaitForAll_myThreads();
+int WaitForAll_myThreads();
 
 
 /* TO DO:

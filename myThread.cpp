@@ -109,7 +109,7 @@ printf("--zmiana z mainem\n");
 				{
 if(TEXT)	
 printf("--main czeka na wszystkich\n");
-					if(WaitForAll_myThreads()==DONE_GOOD) //done waiting
+					if(running_myThreads()==0) //done waiting
 					{
 						if(TEXT)
 						printf("---PRZEŁĄCZANIE NA MAIN \n\n");
