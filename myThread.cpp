@@ -12,6 +12,7 @@ int cur_myThread_ptr = -1;
 void isSomeoneWaitingFor(int Me);
 void myThread_function();
 int findFirstFree();
+int running_myThreads();
 void CleanThread();
 void Init_myThreads()
 {
@@ -94,8 +95,9 @@ printf("--current to last\n");
 						printf("---PRZEŁĄCZANIE NA %d \n\n",i);
 							swapped = true;
 							//isSomeoneWaitingFor(cur_myThread_ptr);
+							int old = cur_myThread_ptr;
 							cur_myThread_ptr=i;
-							swapcontext(&All_myThreads[cur_myThread_ptr].context,&All_myThreads[i].context);
+							swapcontext(&All_myThreads[old].context,&All_myThreads[i].context);
 						}
 				}
 			}
@@ -115,6 +117,10 @@ printf("--main czeka na wszystkich\n");
 					int old = cur_myThread_ptr;
 					cur_myThread_ptr=MAIN_THREAD;
 					swapcontext(&All_myThreads[old].context,&mainThread.context);
+					}
+					else{
+						if(TEXT)
+						printf("---MAIN wziąż czeka \n\n");
 					}
 				}
 				else
@@ -147,6 +153,8 @@ printf("--od 0 do obecnego\n");
 				}
 			}
 		}
+	if(TEXT && swapped == false)
+		printf("---Nie było z czym zamienic");
 	}
 }
 
@@ -203,13 +211,24 @@ printf("%d \n",cur_myThread_ptr);
  int WaitForAll_myThreads() //check if all have finished <<<<< need to be fixed
 {
 	mainThread.waitingFor = MTHREADS_NUM; // waiting for all
-	if(findFirstFree() == NOT_FOUND)      // no active threads
+	if(running_myThreads() == 0)      // no active threads
 		{
 			mainThread.waitingFor = NOT_FOUND;
 			return DONE_GOOD;
 		}
 	else
 		return DONE_WRONG;
+	
+}
+int running_myThreads()
+{
+	int retVal = 0;
+	for(int i = 0; i < MTHREADS_NUM ; i ++)
+	{
+		if(All_myThreads[i].isActive == true)
+			retVal++;
+	}
+	return retVal;
 }
 int findFirstFree()
 {
@@ -236,26 +255,60 @@ void isSomeoneWaitingFor(int Me)
 //example 
 void myThread_function()
 {
+	
+	printf("WATEK POTOMNY 1 ROZPOCZYNA PRACE\n");
+	schedule();
 	for(int j = 0; j < 1; j ++)
 		{
-		printf("----------------%d Hello, myThread 1 there!\n",j);
+		printf("----------------%d WATEK 1 PRACUJE \n",j);
 
 		schedule();
 		}
-	if(TEXT)
+	
 	printf("WATEK POTOMNY 1 KONCZY PRACE");
 	return;
 }
 void myThread_function2()
 {
+	printf("WATEK POTOMNY 2 ROZPOCZYNA PRACE\n");
+	schedule();
 	for(int j = 0; j < 40; j ++)
 		{
-		printf("----------------%d Hello, myThread 2 there!\n",j);
-
+		printf("----------------%d WATEK 2 PRACUJE\n",j);
 		schedule();
 		}
-	if(TEXT)
+	
 	printf("WATEK POTOMNY 2 KONCZY PRACE");
+	return;
+}
+void myThread_function3()
+{
+	printf("WATEK POTOMNY 3 ROZPOCZYNA PRACE\n");
+	schedule();
+	printf("WATEK POTOMNY 3 PRACUJE\n");
+	schedule();
+	printf("WATEK POTOMNY 3 PRACUJE 2\n");
+	schedule();
+	printf("WATEK POTOMNY 3 PRACUJE 3\n");
+	schedule();
+
+	
+	printf("WATEK POTOMNY 3 KONCZY PRACE\n");
+	return;
+}
+void myThread_function4()
+{
+	printf("WATEK POTOMNY 4 ROZPOCZYNA PRACE\n");
+	schedule();
+	printf("WATEK POTOMNY 4 PRACUJE\n");
+	schedule();
+	printf("WATEK POTOMNY 4 PRACUJE 2\n");
+	schedule();
+	printf("WATEK POTOMNY 4 PRACUJE 3\n");
+	schedule();
+
+	
+	printf("WATEK POTOMNY 4 KONCZY PRACE\n");
 	return;
 }
 int main(void)
@@ -267,16 +320,20 @@ int main(void)
 	printf("Error");
 	if(Create_myThread(&myThread_function2))
 	printf("Error");
+	if(Create_myThread(&myThread_function3))
+	printf("Error");
+	if(Create_myThread(&myThread_function4))
+	printf("Error");
 
 	for(int j = 0; j < 10; j ++)
 	{
-	printf("(----------------%d Main thread\n\n",j);
+	printf("----------------%d Main thread\n\n",j);
 
 	schedule();
 	}
 	
-	//while(WaitForAll_myThreads()==DONE_WRONG)
-	//schedule();
+	while(WaitForAll_myThreads()==DONE_WRONG)
+	schedule();
 
 	return 0;
 }

@@ -26,21 +26,21 @@ typedef struct{
 
 
 ////FUNCTIONS
-void Init_myThreads();
+extern void Init_myThreads();
   // switching context between myThreads
-void schedule();
+extern void schedule();
 
   //Creating new myThread
-int Create_myThread(void (*function)(void) );
+extern int Create_myThread(void (*function)(void) );
 
   //Waiting for myThread to finish
-int Join_myThread(myThread T);
+extern int Join_myThread(myThread T);
 
   //Running function on thread
 //void runOn_myThread(void (*function) (void));
 
   //Join on all remaining myThreads
-int WaitForAll_myThreads();
+extern int WaitForAll_myThreads();
 
   //finding place for new thread in thread queue
 //int findFirstFree();
