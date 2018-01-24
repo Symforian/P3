@@ -1,10 +1,11 @@
-#include<iostream>
-#include<cstdlib>
 #include "myThread.h"
+#include <time.h>
   //all threads list
   myThread All_myThreads [MTHREADS_NUM];
 int TEXT =0;
 int cur_myThread_ptr = -1;
+int maxtime; 
+int actualTime;
  ucontext_t cleanerThread;
  myThread mainThread;
 //Functions
@@ -46,13 +47,17 @@ void Init_myThreads()
 			All_myThreads[i].isActive = false;
 			All_myThreads[i].waitingFor = NOT_FOUND;
 		}
+	actualTime = clock();
+	maxtime = clock()+TIMEINT;
 
 }
 void schedule()
 {
+	actualTime = clock();
+
 if(TEXT)	
 printf("\nSCHEDULE as %d,first empty place is %d\n",cur_myThread_ptr,findFirstFree());
-	if(true)//CHANGE THIS when some kind of timer will be done.
+	if(actualTime>maxtime || All_myThreads[cur_myThread_ptr].isActive == false)//CHANGE THIS when some kind of timer will be done.
 	{
 		bool swapped = false;
 
@@ -143,6 +148,7 @@ if(TEXT) printf("---PRZEŁĄCZANIE NA %d \n\n",i);
 if(TEXT && swapped == false)
 printf("---Nie było z czym zamienic\n");
 	}
+	
 }
 
 int Create_myThread(void (*function)(void), int id)
@@ -247,7 +253,7 @@ void myThread_function()
 	
 	printf("WATEK POTOMNY 1 ROZPOCZYNA PRACE\n");
 	schedule();
-	for(int j = 0; j < 1; j ++)
+	for(int j = 0; j < 5; j ++)
 		{
 		printf("----------------%d WATEK 1 PRACUJE \n",j);
 
@@ -266,7 +272,12 @@ void myThread_function2()
 		printf("----------------%d WATEK 2 PRACUJE\n",j);
 		schedule();
 		}
-	Join_myThread(4);
+	printf("WATEK POTOMNY 2 BEDZIE CZEKAL ZA WATKIEM 4\n");
+	if(Join_myThread(4)==DONE_WRONG)
+		printf("Nie można było czekać (2 za 4)");
+	else
+	printf("WATEK POTOMNY 2 SKONCZYŁ CZEKAĆ ZA WĄTKIEM 4\n");
+	
 	printf("WATEK POTOMNY 2 KONCZY PRACE\n");
 	return;
 }
@@ -297,8 +308,9 @@ void myThread_function4()
 	schedule();
 	printf("WATEK POTOMNY 4 BEDZIE CZEKAL ZA WATKIEM 2\n");
 	schedule();
-	Join_myThread(2);
-
+	if(Join_myThread(2)==DONE_WRONG)
+		printf("Nie można było czekać (4 za 2)");
+	else
 	printf("WATEK POTOMNY 4 SKONCZYŁ CZEKAĆ ZA WĄTKIEM 2\n");
 	schedule();
 
@@ -310,25 +322,27 @@ int main(void)
 {
 	printf("Main thread\n");
 	Init_myThreads();
-	printf("New my thread is born:\n");
+	printf("------------------------------TEST 4 wątki:\n");
 	if(Create_myThread(&myThread_function,1))
 	printf("Error");
+	schedule();
 	if(Create_myThread(&myThread_function2,2))
 	printf("Error");
+	schedule();
 	if(Create_myThread(&myThread_function3,3))
 	printf("Error");
+	schedule();
 	if(Create_myThread(&myThread_function4,4))
 	printf("Error");
-
+	schedule();
 	for(int j = 0; j < 10; j ++)
 	{
 	printf("----------------%d Main thread\n\n",j);
-
 	schedule();
 	}
 	
 	WaitForAll_myThreads();
-	
-
+	printf("------------------------------KONIEC TEST 4 wątki\n");
+	printf("Main thread kończy pracę\n");
 	return 0;
 }

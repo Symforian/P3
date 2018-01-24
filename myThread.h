@@ -17,6 +17,8 @@ typedef struct{
 #define MY_THREAD_STACK_SIZE 1024 * 64 
   //max thread number
 #define MTHREADS_NUM 10
+  //time for each myThread
+#define TIMEINT 200
   //Signals
 #define DONE_GOOD 0
 #define NOT_FOUND -1 
