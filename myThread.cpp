@@ -5,15 +5,11 @@
   myThread All_myThreads [MTHREADS_NUM];
 
   //Pointer to current thread running
-int TEXT = 0;
+int TEXT = 1;
 int cur_myThread_ptr = -1;
-int mainWaitingFor = -1;
- ucontext_t currentThread;
  ucontext_t cleanerThread;
  myThread mainThread;
 void isSomeoneWaitingFor(int Me);
-void set_myThread_ptr(int value);
-void runOn_myThread(void (*function) (void));
 void myThread_function();
 int findFirstFree();
 void CleanThread();
@@ -40,25 +36,19 @@ void Init_myThreads()
 	makecontext(&newContext,CleanThread,0);
 
 	cleanerThread = newContext;
-	//currentThread = newThread.context;
-	//getcontext(&mainThread);
-	//getcontext(&currentThread);
-	//currentThread.uc_link = 0;
-	//currentThread.uc_stack.ss_sp = malloc(MY_THREAD_STACK_SIZE);
-	//currentThread.uc_stack.ss_size= MY_THREAD_STACK_SIZE;
-	//getcontext(&currentThread);
+
 	for(int i = 0; i < MTHREADS_NUM ; i ++)
 		{
 			All_myThreads[i].id = i;
 			All_myThreads[i].isActive = false;
 			All_myThreads[i].waitingFor = NOT_FOUND;
 		}
-	//swapcontext(&mainThread.context,&currentThread);
+
 }
 void schedule()
 {
 if(TEXT)	
-printf("SCHEDULE\n");
+printf("\nSCHEDULE as %d,first empty place is %d\n",cur_myThread_ptr,findFirstFree());
 	if(true)//CHANGE THIS when some kind of timer will be done.
 	{
 		bool swapped = false;
@@ -66,7 +56,7 @@ printf("SCHEDULE\n");
 		if(cur_myThread_ptr == MAIN_THREAD) //We were currently doing main
 		{
 if(TEXT)	
-printf("MAIN\n");
+printf("-MAIN\n");
 				
 			for(int i = 0; i < MTHREADS_NUM ; i ++)
 			{	
@@ -74,8 +64,9 @@ printf("MAIN\n");
 
 				if(All_myThreads[i].isActive == true && All_myThreads[i].waitingFor == NOT_FOUND)
 					{
-						
-						set_myThread_ptr(i);
+						if(TEXT)
+						printf("---PRZEŁĄCZANIE NA %d \n\n",i);
+						cur_myThread_ptr=i;
 						swapped = true;
 						//mainThread = currentThread;
 						//currentThread = All_myThreads[i].context;
@@ -91,17 +82,19 @@ printf("MAIN\n");
 		else
 		{
 if(TEXT)	
-printf("NOT MAIN\n");
+printf("-NOT MAIN\n");
 			if(!swapped)//checking myThreads current+1 to last one if ready 
 			{
 if(TEXT)	
-printf("current to last\n");
+printf("--current to last\n");
 				for(int i = cur_myThread_ptr+1; i < MTHREADS_NUM ; i ++)
 				{	if(All_myThreads[i].isActive == true && All_myThreads[i].waitingFor == NOT_FOUND)
 						{
+						if(TEXT)
+						printf("---PRZEŁĄCZANIE NA %d \n\n",i);
 							swapped = true;
-							isSomeoneWaitingFor(cur_myThread_ptr);
-							set_myThread_ptr(i);
+							//isSomeoneWaitingFor(cur_myThread_ptr);
+							cur_myThread_ptr=i;
 							swapcontext(&All_myThreads[cur_myThread_ptr].context,&All_myThreads[i].context);
 						}
 				}
@@ -109,26 +102,29 @@ printf("current to last\n");
 			if(!swapped)//swapping with main
 			{
 if(TEXT)	
-printf("zmiana z mainem\n");
+printf("--zmiana z mainem\n");
 				if(mainThread.waitingFor == MTHREADS_NUM) //main is waiting for them all
 				{
 if(TEXT)	
-printf("main czeka na wszystkich\n");
+printf("--main czeka na wszystkich\n");
 					if(WaitForAll_myThreads()==DONE_GOOD) //done waiting
 					{
+						if(TEXT)
+						printf("---PRZEŁĄCZANIE NA MAIN \n\n");
 						swapped = true;
-						set_myThread_ptr(MAIN_THREAD);
-						swapcontext(&All_myThreads[cur_myThread_ptr].context,&mainThread.context);
+					int old = cur_myThread_ptr;
+					cur_myThread_ptr=MAIN_THREAD;
+					swapcontext(&All_myThreads[old].context,&mainThread.context);
 					}
 				}
 				else
 					if(mainThread.waitingFor == NOT_FOUND)
 				{
-if(TEXT)	
-printf("main jest dostepny\n");
+					if(TEXT)	
+					printf("---PRZEŁĄCZANIE NA MAIN \n\n");
 					swapped = true;
 					int old = cur_myThread_ptr;
-					set_myThread_ptr(MAIN_THREAD);
+					cur_myThread_ptr=MAIN_THREAD;
 					swapcontext(&All_myThreads[old].context,&mainThread.context);
 				}
 					
@@ -136,14 +132,17 @@ printf("main jest dostepny\n");
 			if(!swapped)//checking myThreads first (0) to current
 			{
 if(TEXT)	
-printf("od 0 do obecnego\n");
+printf("--od 0 do obecnego\n");
 				for(int i = 0; i < cur_myThread_ptr ; i ++)
 				{	if(All_myThreads[i].isActive == true && All_myThreads[i].waitingFor == NOT_FOUND)
 						{
+						if(TEXT)
+						printf("---PRZEŁĄCZANIE NA %d \n\n",i);
 							swapped = true;
-							isSomeoneWaitingFor(cur_myThread_ptr);
-							set_myThread_ptr(i);
-							swapcontext(&All_myThreads[cur_myThread_ptr].context,&All_myThreads[i].context);
+							//isSomeoneWaitingFor(cur_myThread_ptr);
+							int old = cur_myThread_ptr;
+							cur_myThread_ptr=i;
+							swapcontext(&All_myThreads[old].context,&All_myThreads[i].context);
 						}
 				}
 			}
@@ -173,7 +172,7 @@ int Create_myThread(void (*function)(void) )
 	newThread.id = place;
 	All_myThreads[place]=newThread;
 	makecontext(&All_myThreads[place].context,function,0);
-	//makecontext(&All_myThreads[place].context,(void (*) (void))&runOn_myThread,1,&function);
+
 
 	return DONE_GOOD;
 }
@@ -190,27 +189,23 @@ int Join_myThread(myThread T)
 }
 void CleanThread()
 {
+if(TEXT)
+printf("\nCLEANER\n");
 	isSomeoneWaitingFor(cur_myThread_ptr);
+if(TEXT)
+printf("%d \n",cur_myThread_ptr);
 	All_myThreads[cur_myThread_ptr].isActive = false;
-
 	free(All_myThreads[cur_myThread_ptr].stack);
-printf("text1");
+
 	schedule();
 }
-void runOn_myThread(void (*function) (void))
-{printf("1b");
-	All_myThreads[cur_myThread_ptr].isActive = true;
-	function();
-	printf("1e");
-	All_myThreads[cur_myThread_ptr].isActive = false;
-	free(All_myThreads[cur_myThread_ptr].stack);
-}
- int WaitForAll_myThreads() //check if all have finished
+
+ int WaitForAll_myThreads() //check if all have finished <<<<< need to be fixed
 {
-	mainWaitingFor = MTHREADS_NUM; // waiting for all
+	mainThread.waitingFor = MTHREADS_NUM; // waiting for all
 	if(findFirstFree() == NOT_FOUND)      // no active threads
 		{
-			mainWaitingFor = NOT_FOUND;
+			mainThread.waitingFor = NOT_FOUND;
 			return DONE_GOOD;
 		}
 	else
@@ -226,13 +221,6 @@ int findFirstFree()
 	return NOT_FOUND;
 }
 
- void set_myThread_ptr(int value)
-{
-	if(value >= 0 && value <= MTHREADS_NUM-1)
-		cur_myThread_ptr = value;
-	else
-		cur_myThread_ptr = MAIN_THREAD;
-}
 void isSomeoneWaitingFor(int Me)
 {
 	for(int i = 0; i < MTHREADS_NUM ; i ++)
@@ -240,20 +228,34 @@ void isSomeoneWaitingFor(int Me)
 		if(All_myThreads[i].isActive == true && All_myThreads[i].waitingFor == Me)
 			All_myThreads[i].waitingFor = NOT_FOUND;
 	}
-	if(mainWaitingFor == Me)
+	if(mainThread.waitingFor == Me)
 	{
-		mainWaitingFor= NOT_FOUND;
+		mainThread.waitingFor= NOT_FOUND;
 	}
 }
 //example 
 void myThread_function()
 {
-	for(int j = 0; j < 40; j ++)
+	for(int j = 0; j < 1; j ++)
 		{
-		printf("%d Hello, myThread there!\n",j);
-//printf("text1");
+		printf("----------------%d Hello, myThread 1 there!\n",j);
+
 		schedule();
 		}
+	if(TEXT)
+	printf("WATEK POTOMNY 1 KONCZY PRACE");
+	return;
+}
+void myThread_function2()
+{
+	for(int j = 0; j < 40; j ++)
+		{
+		printf("----------------%d Hello, myThread 2 there!\n",j);
+
+		schedule();
+		}
+	if(TEXT)
+	printf("WATEK POTOMNY 2 KONCZY PRACE");
 	return;
 }
 int main(void)
@@ -263,14 +265,18 @@ int main(void)
 	printf("New my thread is born:\n");
 	if(Create_myThread(&myThread_function))
 	printf("Error");
+	if(Create_myThread(&myThread_function2))
+	printf("Error");
 
 	for(int j = 0; j < 10; j ++)
 	{
-	printf("%d Main thread\n\n",j);
+	printf("(----------------%d Main thread\n\n",j);
 
 	schedule();
 	}
-	WaitForAll_myThreads();
+	
+	//while(WaitForAll_myThreads()==DONE_WRONG)
+	//schedule();
 
 	return 0;
 }
