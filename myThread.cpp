@@ -2,7 +2,7 @@
 #include<cstdlib>
 #include "myThread.h"
   //all threads list
- myThread All_myThreads [MTHREADS_NUM];
+  myThread All_myThreads [MTHREADS_NUM];
 
   //Pointer to current thread running
 int cur_myThread_ptr = -1;
@@ -133,7 +133,7 @@ int Create_myThread(void (*function)(void) )
 	myThread newThread;
 	//getcontext(&newThread.context);
 	newThread.stack = malloc(MY_THREAD_STACK_SIZE);
-	newThread.context.uc_link = 0;
+	newThread.context.uc_link = &mainThread.context;
 	newThread.context.uc_stack.ss_sp = newThread.stack;
 	newThread.context.uc_stack.ss_size= MY_THREAD_STACK_SIZE;
 	newThread.context.uc_stack.ss_flags = 0;
@@ -223,7 +223,7 @@ void myThread_function()
 	for(int j = 0; j < 40; j ++)
 		{
 		printf("Hello, myThread there!\n");
-		schedule();
+		//schedule();
 		}
 }
 int main(void)
@@ -241,5 +241,26 @@ int main(void)
 	schedule();
 	}
 	WaitForAll_myThreads();
+	/*myThread newThread;
+	getcontext(&newThread.context);
+	newThread.stack = malloc(MY_THREAD_STACK_SIZE);
+	newThread.context.uc_link = 0;
+	newThread.context.uc_stack.ss_sp = newThread.stack;
+	newThread.context.uc_stack.ss_size= MY_THREAD_STACK_SIZE;
+	newThread.context.uc_stack.ss_flags = 0;	
+	newThread.id = 0;
+	newThread.waitingFor = 0;
+	//makecontext(&newThread.context,myThread_function,0);
+	myThread newThread2;
+	//getcontext(&newThread2.context);
+	newThread2.stack = malloc(MY_THREAD_STACK_SIZE);
+	newThread2.context.uc_link = 0;
+	newThread2.context.uc_stack.ss_sp = newThread2.stack;
+	newThread2.context.uc_stack.ss_size= MY_THREAD_STACK_SIZE;
+	newThread2.context.uc_stack.ss_flags = 0;
+	newThread2.id = 0;
+	newThread2.waitingFor = 0;
+	makecontext(&newThread2.context,myThread_function,0);
+	swapcontext(&newThread.context,&newThread2.context);*/
 	return 0;
 }
