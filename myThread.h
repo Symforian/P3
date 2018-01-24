@@ -5,11 +5,12 @@
 ////STRUCTS
   //myThread struct
 typedef struct{
-	int id;			
-	ucontext_t context;
-	bool isActive;
+	int place;		//place in table 
+	int id;			//id for user to know which thread is which
+	ucontext_t context;	
+	bool isActive;		//true if there is thread, false if it's place for thread
 	void* stack;
-	int waitingFor;
+	int waitingFor;		//id of thread to wait for, when it's done this can continue
 } myThread;
 ////FIELDS
   //max thread stack size
@@ -31,34 +32,16 @@ extern void Init_myThreads();
 extern void schedule();
 
   //Creating new myThread
-extern int Create_myThread(void (*function)(void) );
+extern int Create_myThread(void (*function)(void), int id);
 
   //Waiting for myThread to finish
-extern int Join_myThread(myThread T);
+extern int Join_myThread(int idToJoin);
 
-  //Running function on thread
-//void runOn_myThread(void (*function) (void));
 
   //Join on all remaining myThreads
 extern int WaitForAll_myThreads();
 
-  //finding place for new thread in thread queue
-//int findFirstFree();
 
-  //setter for pointer 
-// void set_myThread_ptr(int value);
-
-  //Makes those who waited running again
-//void isSomeoneWaitingFor(int Me);
-
-  //Finds index in table of all threads of given thread 
-//int findIndexOfThread(myThread T);
-/*
-enum Signals
-{
-	OK = 0,
-	OUT_OF_MEM = -1
-};*/
 /* TO DO:
 // "Pushing" myThread onto semaphore
 int Wait_myThread();

@@ -9,11 +9,12 @@ int TEXT = 1;
 int cur_myThread_ptr = -1;
  ucontext_t cleanerThread;
  myThread mainThread;
-void isSomeoneWaitingFor(int Me);
-void myThread_function();
-int findFirstFree();
-int running_myThreads();
-void CleanThread();
+//Functions
+void isSomeoneWaitingFor(int Me); 	//'awakes' every thread waiting for Me
+int findFirstFree();			//returns first empty place to put new myThread 
+int running_myThreads();		//returns amount of running myThreads (running means active)
+void CleanThread();			//cleans stack of myThread and deactivates it
+int canI_JoinHim(int I, int Him);	//checks if Him is not waiting for someone who is waiting for me (kind of deadlock prevention)
 void Init_myThreads()
 {
 
@@ -24,6 +25,7 @@ void Init_myThreads()
 	newThread.context.uc_stack.ss_sp = newThread.stack;
 	newThread.context.uc_stack.ss_size= MY_THREAD_STACK_SIZE;
 	newThread.context.uc_stack.ss_flags = 0;
+	newThread.place = MAIN_THREAD;
 	newThread.id = MAIN_THREAD;
 	newThread.waitingFor = NOT_FOUND;
 
@@ -40,7 +42,8 @@ void Init_myThreads()
 
 	for(int i = 0; i < MTHREADS_NUM ; i ++)
 		{
-			All_myThreads[i].id = i;
+			All_myThreads[i].id = 0;
+			All_myThreads[i].place = i;
 			All_myThreads[i].isActive = false;
 			All_myThreads[i].waitingFor = NOT_FOUND;
 		}
@@ -69,12 +72,9 @@ printf("-MAIN\n");
 						printf("---PRZEŁĄCZANIE NA %d \n\n",i);
 						cur_myThread_ptr=i;
 						swapped = true;
-						//mainThread = currentThread;
-						//currentThread = All_myThreads[i].context;
 
 						if(swapcontext(&mainThread.context,&All_myThreads[i].context))
 							printf("error");
-//printf("text1");
 						
 					}
 				
@@ -158,11 +158,11 @@ printf("--od 0 do obecnego\n");
 	}
 }
 
-int Create_myThread(void (*function)(void) )
+int Create_myThread(void (*function)(void), int id)
 {
-
+	if(id<1)
+		return DONE_WRONG;
 	int place = findFirstFree();
-
 	if(place == NOT_FOUND)
 		return DONE_WRONG;
 	myThread newThread;
@@ -177,23 +177,37 @@ int Create_myThread(void (*function)(void) )
 
 	newThread.isActive = true;
 	newThread.waitingFor = -1;
-	newThread.id = place;
+	newThread.id=id;
+	newThread.place = place;
 	All_myThreads[place]=newThread;
 	makecontext(&All_myThreads[place].context,function,0);
 
 
 	return DONE_GOOD;
 }
-int Join_myThread(myThread T)
+int Join_myThread(int idToJoin)
 {
-	//int indexT = findIndexOfThread(T);
-	if(T.id >= 0 && T.id <= MTHREADS_NUM-1)
+	if(idToJoin >= 1)
 		{
-			All_myThreads[cur_myThread_ptr].waitingFor = T.id;
-			return DONE_GOOD;
+			
+			if(canI_JoinHim(cur_myThread_ptr,idToJoin))
+			{	All_myThreads[cur_myThread_ptr].waitingFor = idToJoin;
+				return DONE_GOOD;
+			}
+			else 
+				return DONE_WRONG;
 		}
 	
 	return DONE_WRONG;
+}
+int canI_JoinHim(int I, int Him)
+{
+	if(All_myThreads[Him].waitingFor == MAIN_THREAD)
+		return DONE_GOOD;
+	if(All_myThreads[Him].waitingFor == I)
+		return DONE_WRONG;
+	int waitPath = All_myThreads[Him].waitingFor;
+	return canI_JoinHim(I,All_myThreads[waitPath].waitingFor) ;
 }
 void CleanThread()
 {
@@ -208,16 +222,14 @@ printf("%d \n",cur_myThread_ptr);
 	schedule();
 }
 
- int WaitForAll_myThreads() //check if all have finished <<<<< need to be fixed
+ int WaitForAll_myThreads() 
 {
 	mainThread.waitingFor = MTHREADS_NUM; // waiting for all
-	if(running_myThreads() == 0)      // no active threads
+	while(running_myThreads() != 0)      // wait until there are no active threads
 		{
-			mainThread.waitingFor = NOT_FOUND;
-			return DONE_GOOD;
+			schedule();
 		}
-	else
-		return DONE_WRONG;
+	return DONE_GOOD;
 	
 }
 int running_myThreads()
@@ -306,6 +318,9 @@ void myThread_function4()
 	schedule();
 	printf("WATEK POTOMNY 4 PRACUJE 3\n");
 	schedule();
+	printf("WATEK POTOMNY 4 BEDZIE CZEKAL ZA WATKIEM 2");
+	schedule();
+	
 
 	
 	printf("WATEK POTOMNY 4 KONCZY PRACE\n");
@@ -316,13 +331,13 @@ int main(void)
 	printf("Main thread\n");
 	Init_myThreads();
 	printf("New my thread is born:\n");
-	if(Create_myThread(&myThread_function))
+	if(Create_myThread(&myThread_function,1))
 	printf("Error");
-	if(Create_myThread(&myThread_function2))
+	if(Create_myThread(&myThread_function2,2))
 	printf("Error");
-	if(Create_myThread(&myThread_function3))
+	if(Create_myThread(&myThread_function3,3))
 	printf("Error");
-	if(Create_myThread(&myThread_function4))
+	if(Create_myThread(&myThread_function4,4))
 	printf("Error");
 
 	for(int j = 0; j < 10; j ++)
@@ -332,8 +347,8 @@ int main(void)
 	schedule();
 	}
 	
-	while(WaitForAll_myThreads()==DONE_WRONG)
-	schedule();
+	WaitForAll_myThreads();
+	
 
 	return 0;
 }
