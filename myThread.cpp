@@ -5,6 +5,7 @@
   myThread All_myThreads [MTHREADS_NUM];
 
   //Pointer to current thread running
+int TEXT = 0;
 int cur_myThread_ptr = -1;
 int mainWaitingFor = -1;
  ucontext_t currentThread;
@@ -18,7 +19,7 @@ int findFirstFree();
 void CleanThread();
 void Init_myThreads()
 {
-	//getcontext(&mainThread);
+
 	myThread newThread;
 	getcontext(&newThread.context);
 	newThread.stack = malloc(MY_THREAD_STACK_SIZE);
@@ -32,9 +33,8 @@ void Init_myThreads()
 	mainThread = newThread;
 	ucontext_t newContext;
 	getcontext(&newContext);
-	newThread.stack = malloc(MY_THREAD_STACK_SIZE);
 	newContext.uc_link = 0;
-	newContext.uc_stack.ss_sp = newThread.stack;
+	newContext.uc_stack.ss_sp =  malloc(MY_THREAD_STACK_SIZE);
 	newContext.uc_stack.ss_size= MY_THREAD_STACK_SIZE;
 	newContext.uc_stack.ss_flags = 0;
 	makecontext(&newContext,CleanThread,0);
@@ -56,13 +56,17 @@ void Init_myThreads()
 	//swapcontext(&mainThread.context,&currentThread);
 }
 void schedule()
-{	
-//	if(true)//CHANGE THIS when some kind of timer will be done.
-	//{
+{
+if(TEXT)	
+printf("SCHEDULE\n");
+	if(true)//CHANGE THIS when some kind of timer will be done.
+	{
 		bool swapped = false;
 
 		if(cur_myThread_ptr == MAIN_THREAD) //We were currently doing main
 		{
+if(TEXT)	
+printf("MAIN\n");
 				
 			for(int i = 0; i < MTHREADS_NUM ; i ++)
 			{	
@@ -78,7 +82,7 @@ void schedule()
 
 						if(swapcontext(&mainThread.context,&All_myThreads[i].context))
 							printf("error");
-
+//printf("text1");
 						
 					}
 				
@@ -86,52 +90,65 @@ void schedule()
 		}
 		else
 		{
+if(TEXT)	
+printf("NOT MAIN\n");
 			if(!swapped)//checking myThreads current+1 to last one if ready 
 			{
+if(TEXT)	
+printf("current to last\n");
 				for(int i = cur_myThread_ptr+1; i < MTHREADS_NUM ; i ++)
 				{	if(All_myThreads[i].isActive == true && All_myThreads[i].waitingFor == NOT_FOUND)
 						{
 							swapped = true;
 							isSomeoneWaitingFor(cur_myThread_ptr);
 							set_myThread_ptr(i);
-							//swapcontext(&currentThread,&All_myThreads[i].context);
+							swapcontext(&All_myThreads[cur_myThread_ptr].context,&All_myThreads[i].context);
 						}
 				}
 			}
 			if(!swapped)//swapping with main
 			{
-				if(mainWaitingFor == MTHREADS_NUM) 
+if(TEXT)	
+printf("zmiana z mainem\n");
+				if(mainThread.waitingFor == MTHREADS_NUM) //main is waiting for them all
 				{
+if(TEXT)	
+printf("main czeka na wszystkich\n");
 					if(WaitForAll_myThreads()==DONE_GOOD) //done waiting
 					{
 						swapped = true;
 						set_myThread_ptr(MAIN_THREAD);
-						//swapcontext(&currentThread,&mainThread.context);
+						swapcontext(&All_myThreads[cur_myThread_ptr].context,&mainThread.context);
 					}
 				}
 				else
-					if(mainWaitingFor == NOT_FOUND)
+					if(mainThread.waitingFor == NOT_FOUND)
 				{
+if(TEXT)	
+printf("main jest dostepny\n");
 					swapped = true;
+					int old = cur_myThread_ptr;
 					set_myThread_ptr(MAIN_THREAD);
-					//swapcontext(&currentThread,&mainThread.context);
+					swapcontext(&All_myThreads[old].context,&mainThread.context);
 				}
 					
 			}
 			if(!swapped)//checking myThreads first (0) to current
 			{
+if(TEXT)	
+printf("od 0 do obecnego\n");
 				for(int i = 0; i < cur_myThread_ptr ; i ++)
 				{	if(All_myThreads[i].isActive == true && All_myThreads[i].waitingFor == NOT_FOUND)
 						{
 							swapped = true;
 							isSomeoneWaitingFor(cur_myThread_ptr);
 							set_myThread_ptr(i);
-							//swapcontext(&currentThread,&All_myThreads[i].context);
+							swapcontext(&All_myThreads[cur_myThread_ptr].context,&All_myThreads[i].context);
 						}
 				}
 			}
 		}
-	//}
+	}
 }
 
 int Create_myThread(void (*function)(void) )
@@ -143,7 +160,7 @@ int Create_myThread(void (*function)(void) )
 		return DONE_WRONG;
 	myThread newThread;
 	getcontext(&newThread.context);
-	newThread.context.uc_link = &mainThread.context;
+	newThread.context.uc_link = &cleanerThread;
 	newThread.context.uc_stack.ss_sp = malloc(MY_THREAD_STACK_SIZE);
 	newThread.stack = newThread.context.uc_stack.ss_sp;
 	newThread.context.uc_stack.ss_size= MY_THREAD_STACK_SIZE;
@@ -177,6 +194,7 @@ void CleanThread()
 	All_myThreads[cur_myThread_ptr].isActive = false;
 
 	free(All_myThreads[cur_myThread_ptr].stack);
+printf("text1");
 	schedule();
 }
 void runOn_myThread(void (*function) (void))
@@ -233,8 +251,10 @@ void myThread_function()
 	for(int j = 0; j < 40; j ++)
 		{
 		printf("%d Hello, myThread there!\n",j);
-		//schedule();
+//printf("text1");
+		schedule();
 		}
+	return;
 }
 int main(void)
 {
