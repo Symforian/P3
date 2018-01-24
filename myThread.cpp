@@ -15,6 +15,7 @@ int findFirstFree();			//returns first empty place to put new myThread
 int running_myThreads();		//returns amount of running myThreads (running means active)
 void CleanThread();			//cleans stack of myThread and deactivates it
 int canI_JoinHim(int I, int Him);	//checks if Him is not waiting for someone who is waiting for me (kind of deadlock prevention)
+int placeFromId(int id);		//returns given id's place
 void Init_myThreads()
 {
 
@@ -94,7 +95,6 @@ printf("--current to last\n");
 						if(TEXT)
 						printf("---PRZEŁĄCZANIE NA %d \n\n",i);
 							swapped = true;
-							//isSomeoneWaitingFor(cur_myThread_ptr);
 							int old = cur_myThread_ptr;
 							cur_myThread_ptr=i;
 							swapcontext(&All_myThreads[old].context,&All_myThreads[i].context);
@@ -145,7 +145,6 @@ printf("--od 0 do obecnego\n");
 						if(TEXT)
 						printf("---PRZEŁĄCZANIE NA %d \n\n",i);
 							swapped = true;
-							//isSomeoneWaitingFor(cur_myThread_ptr);
 							int old = cur_myThread_ptr;
 							cur_myThread_ptr=i;
 							swapcontext(&All_myThreads[old].context,&All_myThreads[i].context);
@@ -154,7 +153,7 @@ printf("--od 0 do obecnego\n");
 			}
 		}
 	if(TEXT && swapped == false)
-		printf("---Nie było z czym zamienic");
+		printf("---Nie było z czym zamienic\n");
 	}
 }
 
@@ -187,15 +186,21 @@ int Create_myThread(void (*function)(void), int id)
 }
 int Join_myThread(int idToJoin)
 {
+if(TEXT)
+printf("\nJOIN who:%d to who:%d\n",cur_myThread_ptr,idToJoin);
 	if(idToJoin >= 1)
 		{
 			
-			if(canI_JoinHim(cur_myThread_ptr,idToJoin))
-			{	All_myThreads[cur_myThread_ptr].waitingFor = idToJoin;
+			if(canI_JoinHim(cur_myThread_ptr,idToJoin)==DONE_GOOD)
+			{	 
+				int place = placeFromId(idToJoin);
+				if(place!=DONE_WRONG)
+				{
+				All_myThreads[cur_myThread_ptr].waitingFor=place;
 				return DONE_GOOD;
+				}
 			}
-			else 
-				return DONE_WRONG;
+
 		}
 	
 	return DONE_WRONG;
@@ -203,17 +208,26 @@ int Join_myThread(int idToJoin)
 int canI_JoinHim(int I, int Him)
 {
 	if(All_myThreads[Him].waitingFor == MAIN_THREAD)
-		return DONE_GOOD;
+		{printf("JOINed");return DONE_GOOD;}
 	if(All_myThreads[Him].waitingFor == I)
-		return DONE_WRONG;
+		{printf("nJOINed");return DONE_WRONG;}
 	int waitPath = All_myThreads[Him].waitingFor;
 	return canI_JoinHim(I,All_myThreads[waitPath].waitingFor) ;
+}
+int placeFromId(int id)
+{
+	for(int i = 0; i < MTHREADS_NUM ; i ++)
+	{
+		if(All_myThreads[i].id==id)
+			return All_myThreads[i].place;	
+	}
+	return DONE_WRONG;
 }
 void CleanThread()
 {
 if(TEXT)
 printf("\nCLEANER\n");
-	isSomeoneWaitingFor(cur_myThread_ptr);
+	isSomeoneWaitingFor(All_myThreads[cur_myThread_ptr].place);
 if(TEXT)
 printf("%d \n",cur_myThread_ptr);
 	All_myThreads[cur_myThread_ptr].isActive = false;
@@ -320,7 +334,9 @@ void myThread_function4()
 	schedule();
 	printf("WATEK POTOMNY 4 BEDZIE CZEKAL ZA WATKIEM 2");
 	schedule();
-	
+	Join_myThread(2);
+	printf("WATEK POTOMNY 4 SKONCZYŁ CZEKAĆ ZA WĄTKIEM 2");
+	schedule();
 
 	
 	printf("WATEK POTOMNY 4 KONCZY PRACE\n");
