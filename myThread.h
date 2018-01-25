@@ -1,7 +1,19 @@
 #include<stdio.h>
 #include<stdlib.h>
 #include<ucontext.h>
-
+////FIELDS
+  //max thread stack size
+#define MY_THREAD_STACK_SIZE 1024 * 64 
+  //max thread number
+#define MTHREADS_NUM 10
+  //time for each myThread
+#define TIMEINT 100
+  //Signals
+#define DONE_GOOD 0
+#define NOT_FOUND -1 
+#define MAIN_THREAD -1
+#define DONE_WRONG 1
+#define SEM_LOCK_SIG -2
 ////STRUCTS
   //myThread struct
 typedef struct{
@@ -12,18 +24,11 @@ typedef struct{
 	void* stack;
 	int waitingFor;		//id of thread to wait for, when it's done this can continue
 } myThread;
-////FIELDS
-  //max thread stack size
-#define MY_THREAD_STACK_SIZE 1024 * 64 
-  //max thread number
-#define MTHREADS_NUM 10
-  //time for each myThread
-#define TIMEINT 200
-  //Signals
-#define DONE_GOOD 0
-#define NOT_FOUND -1 
-#define MAIN_THREAD -1
-#define DONE_WRONG 1
+typedef struct{
+	int counter;
+	int IdQueue[MTHREADS_NUM];
+}mySemaphore;
+
 
 
 

@@ -1,8 +1,8 @@
 #include "myThread.h"
 #include <time.h>
+#include <unistd.h>
   //all threads list
   myThread All_myThreads [MTHREADS_NUM];
-int TEXT =0;
 int cur_myThread_ptr = -1;
 int maxtime; 
 int actualTime;
@@ -55,23 +55,19 @@ void schedule()
 {
 	actualTime = clock();
 
-if(TEXT)	
-printf("\nSCHEDULE as %d,first empty place is %d\n",cur_myThread_ptr,findFirstFree());
-	if(actualTime>maxtime || All_myThreads[cur_myThread_ptr].isActive == false)//CHANGE THIS when some kind of timer will be done.
+	if(actualTime>maxtime || All_myThreads[cur_myThread_ptr].isActive == false)
 	{
 		bool swapped = false;
 
 		if(cur_myThread_ptr == MAIN_THREAD) //We were currently doing main
 		{
-if(TEXT)	
-printf("-MAIN\n");	
+	
 			for(int i = 0; i < MTHREADS_NUM ; i ++)
 			{	
 
 
 				if(All_myThreads[i].isActive == true && All_myThreads[i].waitingFor == NOT_FOUND)
 					{
-if(TEXT) printf("---PRZEŁĄCZANIE NA %d \n\n",i);
 						cur_myThread_ptr=i;
 						swapped = true;
 
@@ -81,17 +77,11 @@ if(TEXT) printf("---PRZEŁĄCZANIE NA %d \n\n",i);
 		}
 		else
 		{
-if(TEXT)	
-printf("-NOT MAIN\n");
 			if(!swapped)//checking myThreads current+1 to last one if ready 
 			{
-if(TEXT)	
-printf("--current to last\n");
 				for(int i = cur_myThread_ptr+1; i < MTHREADS_NUM ; i ++)
 					if(All_myThreads[i].isActive == true && All_myThreads[i].waitingFor == NOT_FOUND)
 						{
-if(TEXT)
-printf("---PRZEŁĄCZANIE NA %d \n\n",i);
 							swapped = true;
 							int old = cur_myThread_ptr;
 							cur_myThread_ptr=i;
@@ -100,29 +90,19 @@ printf("---PRZEŁĄCZANIE NA %d \n\n",i);
 				
 			}
 			if(!swapped)//swapping with main
-			{
-if(TEXT)	
-printf("--zmiana z mainem\n");
+			{	
 				if(mainThread.waitingFor == MTHREADS_NUM) //main is waiting for them all
 				{
-if(TEXT)	
-printf("--main czeka na wszystkich\n");
 					if(running_myThreads()==0) //done waiting
 					{
-if(TEXT)
-printf("---PRZEŁĄCZANIE NA MAIN \n\n");
 					swapped = true;
 					int old = cur_myThread_ptr;
 					cur_myThread_ptr=MAIN_THREAD;
 					swapcontext(&All_myThreads[old].context,&mainThread.context);
 					}
-/*                                     */else if(TEXT)
-printf("---MAIN wziąż czeka \n\n");
-					
 				}
 				else if(mainThread.waitingFor == NOT_FOUND)
 				{
-if(TEXT) printf("---PRZEŁĄCZANIE NA MAIN \n\n");
 					swapped = true;
 					int old = cur_myThread_ptr;
 					cur_myThread_ptr=MAIN_THREAD;
@@ -132,11 +112,9 @@ if(TEXT) printf("---PRZEŁĄCZANIE NA MAIN \n\n");
 			}
 			if(!swapped)//checking myThreads first (0) to current
 			{
-if(TEXT) printf("--od 0 do obecnego\n");
 				for(int i = 0; i < cur_myThread_ptr ; i ++)
 					if(All_myThreads[i].isActive == true && All_myThreads[i].waitingFor == NOT_FOUND)
 						{
-if(TEXT) printf("---PRZEŁĄCZANIE NA %d \n\n",i);
 							swapped = true;
 							int old = cur_myThread_ptr;
 							cur_myThread_ptr=i;
@@ -145,8 +123,6 @@ if(TEXT) printf("---PRZEŁĄCZANIE NA %d \n\n",i);
 				
 			}
 		}
-if(TEXT && swapped == false)
-printf("---Nie było z czym zamienic\n");
 	}
 	
 }
@@ -178,13 +154,13 @@ int Create_myThread(void (*function)(void), int id)
 }
 int Join_myThread(int idToJoin)// A join B => B !join A 
 {
-if(TEXT)
-printf("\nJOIN who:%d to who:%d\n",cur_myThread_ptr,idToJoin);
+	
 	if(idToJoin >= 1)
 		{
 			int place = placeFromId(idToJoin);
 			if(place!=NOT_FOUND)
 			{	
+				if(cur_myThread_ptr==MAIN_THREAD) mainThread.waitingFor=place;
 				if(canI_JoinHim(cur_myThread_ptr,place)==DONE_GOOD)
 				{
 				All_myThreads[cur_myThread_ptr].waitingFor=place;
@@ -209,10 +185,9 @@ int placeFromId(int id)
 }
 void CleanThread()
 {
-if(TEXT) printf("\nCLEANER\n");
 	isSomeoneWaitingFor(All_myThreads[cur_myThread_ptr].place);
-if(TEXT) printf("%d \n",cur_myThread_ptr);
 	All_myThreads[cur_myThread_ptr].isActive = false;
+	All_myThreads[cur_myThread_ptr].id = 0;
 	free(All_myThreads[cur_myThread_ptr].stack);
 	schedule();
 }
@@ -247,7 +222,37 @@ void isSomeoneWaitingFor(int Me)
 			All_myThreads[i].waitingFor = NOT_FOUND;
 	if(mainThread.waitingFor == Me) mainThread.waitingFor= NOT_FOUND;
 }
+
+//semaphore
+void Init_mySemaphore(mySemaphore* sem, int amount)
+{
+	sem->counter=amount;
+	for(int i = 0; i< MTHREADS_NUM; i++)
+	sem->IdQueue[i]=-1;
+}
+//wait 
+void wait_myThread(mySemaphore* sem)
+{
+	if(sem->counter>0)
+	{
+	sem->counter--;
+	All_myThreads[cur_myThread_ptr].waitingFor = SEM_LOCK_SIG;
+	sem->IdQueue[sem->counter]=All_myThreads[cur_myThread_ptr].id;
+	}
+	
+}
+//signal
+void signal_myThread(mySemaphore* sem)
+{
+	if(sem->counter>=0)
+	{
+	All_myThreads[placeFromId(sem->IdQueue[sem->counter])].waitingFor = MAIN_THREAD;
+	sem->IdQueue[sem->counter]=-1;
+	sem->counter++;
+	}
+}
 //example 
+/////////////////////////////////////////////////////////
 void myThread_function()
 {
 	
@@ -309,7 +314,7 @@ void myThread_function4()
 	printf("WATEK POTOMNY 4 BEDZIE CZEKAL ZA WATKIEM 2\n");
 	schedule();
 	if(Join_myThread(2)==DONE_WRONG)
-		printf("Nie można było czekać (4 za 2)");
+		printf("Nie można było czekać (4 za 2)\n");
 	else
 	printf("WATEK POTOMNY 4 SKONCZYŁ CZEKAĆ ZA WĄTKIEM 2\n");
 	schedule();
@@ -318,10 +323,59 @@ void myThread_function4()
 	printf("WATEK POTOMNY 4 KONCZY PRACE\n");
 	return;
 }
+/////////////////////////////////////////////////////////
+void myThread_function5()
+{
+	printf("Wątek 1 zaczyna pracę\n");
+	schedule();
+	for(int i=0; i < 15 ; i++)
+	{
+		printf("Zaraz zaśnie (W1)\n");
+		schedule();
+		usleep(40);
+		schedule();
+	}
+	printf("Wątek 1 kończy pracę\n");
+	return;
+}
+void myThread_function6()
+{
+	printf("Wątek 2 zaczyna pracę\n");
+	schedule();
+	for(int i=0; i < 15 ; i++)
+	{
+		printf("Zaraz zaśnie (W2)\n");
+		schedule();
+		usleep(50);
+		schedule();
+	}
+	printf("Wątek 2 kończy pracę\n");
+	return;
+}
+void myThread_function7()
+{
+	printf("Wątek 3 zaczyna pracę\n");
+	schedule();
+	printf("Zaraz zaśnie (W1)\n");
+	schedule();
+	usleep(100000);
+	schedule();
+	printf("(W3) Zaraz poczeka na (W2)\n");
+	schedule();
+	Join_myThread(2);
+	schedule();
+	printf("Wątek 3 kończy pracę\n");
+	return;
+}
+/////////////////////////////////////////////////////////
 int main(void)
 {
 	printf("Main thread\n");
 	Init_myThreads();
+	int test1=0;
+	int test2=1;
+	if(test1)
+{
 	printf("------------------------------TEST 4 wątki:\n");
 	if(Create_myThread(&myThread_function,1))
 	printf("Error");
@@ -340,9 +394,27 @@ int main(void)
 	printf("----------------%d Main thread\n\n",j);
 	schedule();
 	}
-	
+	printf("Zaraz main poczeka na resztę\n");
+	schedule();
 	WaitForAll_myThreads();
 	printf("------------------------------KONIEC TEST 4 wątki\n");
+}
+	if(test2)
+{
+	printf("------------------------------TEST czasowy wątki:\n");
+	if(Create_myThread(&myThread_function5,1))
+	printf("Error");
+	schedule();
+	if(Create_myThread(&myThread_function6,2))
+	printf("Error");
+	schedule();
+	if(Create_myThread(&myThread_function7,3))
+	printf("Error");
+	schedule();
+	printf("Zaraz main poczeka na resztę\n");
+	schedule();
+	WaitForAll_myThreads();
+}
 	printf("Main thread kończy pracę\n");
 	return 0;
 }
