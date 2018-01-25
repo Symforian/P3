@@ -55,7 +55,7 @@ void schedule()
 {
 	actualTime = clock();
 
-	if(actualTime>maxtime || All_myThreads[cur_myThread_ptr].isActive == false || All_myThreads[cur_myThread_ptr].waitingFor==-2)
+	if(actualTime>maxtime || All_myThreads[cur_myThread_ptr].isActive == false || All_myThreads[cur_myThread_ptr].waitingFor==SEM_LOCK_SIG)
 	{
 		bool swapped = false;
 
@@ -233,24 +233,20 @@ void Init_mySemaphore(mySemaphore* sem, int amount)
 //wait 
 void wait_myThread(mySemaphore* sem)
 {
-//printf("WAIT\n");
 	if(sem->counter>0)
 	{
 	sem->counter--;
 	All_myThreads[cur_myThread_ptr].waitingFor = SEM_LOCK_SIG;
 	sem->IdQueue[sem->counter]=All_myThreads[cur_myThread_ptr].id;
-	//printf("wait this:%d\n",sem->IdQueue[sem->counter]);
 	}
 	
 }
 //signal
 void signal_myThread(mySemaphore* sem)
 {
-//printf("SIGNAL\n");
 	if(sem->counter>=0)
 	{
 	All_myThreads[placeFromId(sem->IdQueue[sem->counter])].waitingFor = MAIN_THREAD;
-	//printf("signal this:%d\n",placeFromId(sem->IdQueue[sem->counter]));
 	sem->IdQueue[sem->counter]=-1;
 	sem->counter++;
 	}
@@ -424,7 +420,7 @@ int main(void)
 	Init_myThreads();
 	int test1=1;
 	int test2=1;
-	int test3=0;
+	int test3=0;//DOES NOT WORK
 	if(test1)
 {
 	printf("------------------------------TEST 4 wątki:\n");
