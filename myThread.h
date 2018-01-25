@@ -47,13 +47,11 @@ int Join_myThread(int idToJoin);
 
   //Join on all remaining myThreads
 int WaitForAll_myThreads();
+  
+void Init_mySemaphore(mySemaphore* sem, int amount);
+  
+void wait_myThread(mySemaphore* sem);
+
+void signal_myThread(mySemaphore* sem);
 
 
-/* TO DO:
-// "Pushing" myThread onto semaphore
-int Wait_myThread();
-// "Popping" myThread of semaphore
-int Signal_myThread();
-
-
-*/

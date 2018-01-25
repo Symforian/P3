@@ -55,7 +55,7 @@ void schedule()
 {
 	actualTime = clock();
 
-	if(actualTime>maxtime || All_myThreads[cur_myThread_ptr].isActive == false)
+	if(actualTime>maxtime || All_myThreads[cur_myThread_ptr].isActive == false || All_myThreads[cur_myThread_ptr].waitingFor==-2)
 	{
 		bool swapped = false;
 
@@ -233,20 +233,24 @@ void Init_mySemaphore(mySemaphore* sem, int amount)
 //wait 
 void wait_myThread(mySemaphore* sem)
 {
+//printf("WAIT\n");
 	if(sem->counter>0)
 	{
 	sem->counter--;
 	All_myThreads[cur_myThread_ptr].waitingFor = SEM_LOCK_SIG;
 	sem->IdQueue[sem->counter]=All_myThreads[cur_myThread_ptr].id;
+	//printf("wait this:%d\n",sem->IdQueue[sem->counter]);
 	}
 	
 }
 //signal
 void signal_myThread(mySemaphore* sem)
 {
+//printf("SIGNAL\n");
 	if(sem->counter>=0)
 	{
 	All_myThreads[placeFromId(sem->IdQueue[sem->counter])].waitingFor = MAIN_THREAD;
+	//printf("signal this:%d\n",placeFromId(sem->IdQueue[sem->counter]));
 	sem->IdQueue[sem->counter]=-1;
 	sem->counter++;
 	}
@@ -279,7 +283,7 @@ void myThread_function2()
 		}
 	printf("WATEK POTOMNY 2 BEDZIE CZEKAL ZA WATKIEM 4\n");
 	if(Join_myThread(4)==DONE_WRONG)
-		printf("Nie można było czekać (2 za 4)");
+		printf("Nie można było czekać (2 za 4)\n");
 	else
 	printf("WATEK POTOMNY 2 SKONCZYŁ CZEKAĆ ZA WĄTKIEM 4\n");
 	
@@ -368,12 +372,59 @@ void myThread_function7()
 	return;
 }
 /////////////////////////////////////////////////////////
+mySemaphore lock;
+void myThread_function8()
+{
+	printf("Wątek 1 zaczyna pracę\n");
+	schedule();
+	printf("Zaraz wejście w sekcje krytyczną\n");
+	schedule();
+	wait_myThread(&lock);
+	schedule();
+	printf("Jesteśmy w sekcji krytycznej (W1)\n");
+	schedule();
+	usleep(100000);
+	schedule();
+	printf("Opuszczamy sekcje krytyczną (W1)");
+	schedule();	
+	signal_myThread(&lock);
+	printf("Wątek 1 kończy pracę\n");
+	return;
+}
+void myThread_function9()
+{
+	printf("Wątek 2 zaczyna pracę\n");
+	schedule();
+	printf("Zaraz wejście w sekcje krytyczną\n");
+	schedule();
+	wait_myThread(&lock);
+	schedule();
+	printf("Jesteśmy w sekcji krytycznej (W2)\n");;
+	schedule();
+	printf("Wątek 2 kończy pracę\n");
+	return;
+}
+void myThread_function10()
+{
+	printf("Wątek 3 zaczyna pracę\n");
+	schedule();
+	printf("Zaraz wejście w sekcje krytyczną\n");
+	schedule();
+	wait_myThread(&lock);
+	schedule();
+	printf("Jesteśmy w sekcji krytycznej (W3)\n");;
+	schedule();
+	printf("Wątek 3 kończy pracę\n");
+	return;
+}
+/////////////////////////////////////////////////////////
 int main(void)
 {
 	printf("Main thread\n");
 	Init_myThreads();
-	int test1=0;
+	int test1=1;
 	int test2=1;
+	int test3=0;
 	if(test1)
 {
 	printf("------------------------------TEST 4 wątki:\n");
@@ -411,10 +462,36 @@ int main(void)
 	if(Create_myThread(&myThread_function7,3))
 	printf("Error");
 	schedule();
+	printf("Zaraz main poczeka na W(3)\n");
+	Join_myThread(3);
+	printf("Koniec czekania na W3\n");
+	schedule();
 	printf("Zaraz main poczeka na resztę\n");
 	schedule();
 	WaitForAll_myThreads();
+	printf("------------------------------KONIEC TEST czasowy wątki:\n");
 }
+	if(test3)
+{
+	printf("------------------------------TEST semafory:\n");
+	Init_mySemaphore(&lock,3);
+	if(Create_myThread(&myThread_function8,1))
+	printf("Error");
+	schedule();
+	if(Create_myThread(&myThread_function9,2))
+	printf("Error");
+	schedule();
+	if(Create_myThread(&myThread_function10,3))
+	printf("Error");
+	printf("Zaraz main poczeka na resztę\n");
+	schedule();
+	usleep(3000000);
+	signal_myThread(&lock);
+	printf("Zaraz main poczeka na resztę\n");
+	schedule();
+	WaitForAll_myThreads();
+	printf("------------------------------TEST semafory:\n");
+}		
 	printf("Main thread kończy pracę\n");
 	return 0;
 }
